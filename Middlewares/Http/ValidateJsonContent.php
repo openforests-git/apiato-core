@@ -26,8 +26,10 @@ class ValidateJsonContent extends Middleware
         // the request has to be processed, so get the response after the request is done
         $response = $next($request);
 
-        // set Content Languages header in the response | always return Content-Type application/json in the header
-        $response->headers->set('Content-Type', $contentType);
+        // return Content-Type application/json in the header if it has not been set to a specific header in the application
+        if ($response->headers->get('Content-Type') === 'text/html; charset=UTF-8') {
+            $response->headers->set('Content-Type', $contentType);
+        }
 
         // if request doesn't contain in header accept = application/json. Return a warning in the response
         if (!str_contains($acceptHeader, $contentType)) {
