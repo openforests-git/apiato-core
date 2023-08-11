@@ -48,7 +48,7 @@ trait CanOwnTrait
             return !is_null($this->$relation()->find($ownable));
         }
 
-        $relation = $this->guessPlurarRelationshipName($ownable);
+        $relation = $this->guessPluralRelationshipName($ownable);
         if (method_exists($this, $relation)) {
             return !is_null($this->$relation()->find($ownable));
         }
