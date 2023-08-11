@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 trait CanOwnTrait
 {
     /**
-     * Checks if the model is the owned by the $owner model.
+     * Checks if the model is owned by the $owner model.
      *
      * It tries to guess the relation by the name of the $owner model.
      * e.g., if the $owner model is called User, then the first guess would be `user()`.
@@ -61,7 +61,7 @@ trait CanOwnTrait
         return Str::camel(class_basename($ownable));
     }
 
-    protected function guessPlurarRelationshipName(Model $ownable): string
+    protected function guessPluralRelationshipName(Model $ownable): string
     {
         return Str::plural(Str::camel(class_basename($ownable)));
     }
