@@ -24,8 +24,8 @@ trait ResponseTrait
         $transformerName = null,
         array $includes = [],
         array $meta = [],
-        $resourceKey = null
-    ): array {
+        $resourceKey = null,
+    ): JsonResponse {
         // first, we need to create the transformer
         if ($transformerName instanceof Transformer) {
             // check, if we have provided a respective TRANSFORMER class
@@ -82,7 +82,7 @@ trait ResponseTrait
             $result = $fractal->toArray();
         }
 
-        return $result;
+        return $this->json($result);
     }
 
     protected function parseRequestedIncludes(): array
@@ -132,6 +132,10 @@ trait ResponseTrait
 
     public function created($message = null, $status = 201, array $headers = [], $options = 0): JsonResponse
     {
+        if ($message instanceof JsonResponse) {
+            $message = $message->getData();
+        }
+
         return new JsonResponse($message, $status, $headers, $options);
     }
 
@@ -154,6 +158,10 @@ trait ResponseTrait
 
     public function accepted($message = null, $status = 202, array $headers = [], $options = 0): JsonResponse
     {
+        if ($message instanceof JsonResponse) {
+            $message = $message->getData();
+        }
+
         return new JsonResponse($message, $status, $headers, $options);
     }
 
