@@ -226,7 +226,12 @@ trait TestsRequestHelperTrait
     {
         // In case Hash ID is enabled it will encode the ID first
         $id = $this->hashEndpointId($id, $skipEncoding);
-        $this->endpoint = str_replace($replace, $id, $this->endpoint);
+
+        if (is_null($this->overrideEndpoint)) {
+            $this->endpoint = str_replace($replace, $id, $this->endpoint);
+        } else {
+            $this->overrideEndpoint = str_replace($replace, $id, $this->overrideEndpoint);
+        }
 
         return $this;
     }
@@ -240,6 +245,9 @@ trait TestsRequestHelperTrait
      * Override the default class endpoint property before making the call
      *
      * to be used as follow: $this->endpoint('verb@uri')->makeCall($data);
+     *
+     * Note: The order in which you call this function is crucial. Make sure to call it before injectId(),
+     * or else injectId() will not replace the ID in the overridden endpoint.
      *
      * @param $endpoint
      *
