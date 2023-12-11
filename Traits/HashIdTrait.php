@@ -2,8 +2,8 @@
 
 namespace Apiato\Core\Traits;
 
+use Apiato\Core\Exceptions\CoreInternalErrorException;
 use Apiato\Core\Exceptions\IncorrectIdException;
-use http\Exception\InvalidArgumentException;
 use Illuminate\Support\Facades\Config;
 use Vinkla\Hashids\Facades\Hashids;
 
@@ -145,7 +145,10 @@ trait HashIdTrait
             if ($this->skipHashIdDecode($data)) {
                 return $data;
             } else {
-                throw_if(!is_null($data) && !is_string($data), new \InvalidArgumentException('String expected, got ' . gettype($data)));
+                throw_if(!is_null($data) && !is_string($data),
+                    (new CoreInternalErrorException('String expected, got ' . gettype($data), 422))
+                        ->withErrors([$currentFieldName => 'String expected, got ' . gettype($data)])
+                );
 
                 $decodedField = $this->decode($data);
 
