@@ -188,9 +188,10 @@ trait HashIdTrait
         }
 
         // check if the key we are looking for does, in fact, really exist
-        throw_if(!is_array($data),
+        throw_if(
+            !is_array($data),
             (new CoreInternalErrorException('Array expected, got ' . gettype($data), 422))
-                ->withErrors([$currentFieldName => 'Array expected, got ' . gettype($data)])
+                ->withErrors([$currentFieldName => 'Array expected, got ' . gettype($data)]),
         );
         if (!array_key_exists($field, $data)) {
             return $data;
