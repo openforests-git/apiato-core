@@ -5,20 +5,29 @@ namespace App\Containers\{{section-name}}\{{container-name}}\UI\API\Transformers
 use App\Containers\{{section-name}}\{{container-name}}\Models\{{model}};
 use App\Ship\Parents\Transformers\Transformer as ParentTransformer;
 
-final class {{class-name}} extends ParentTransformer
+class {{class-name}} extends ParentTransformer
 {
-    protected array $defaultIncludes = [];
+    protected array $defaultIncludes = [
 
-    protected array $availableIncludes = [];
+    ];
+
+    protected array $availableIncludes = [
+
+    ];
 
     public function transform({{model}} ${{_model}}): array
     {
-        return [
+        $response = [
 {{attributes}}
+        ];
+
+        return $this->ifAdmin([
+            'real_id' => ${{_model}}->id,
             'created_at' => ${{_model}}->created_at,
             'updated_at' => ${{_model}}->updated_at,
             'readable_created_at' => ${{_model}}->created_at->diffForHumans(),
             'readable_updated_at' => ${{_model}}->updated_at->diffForHumans(),
-        ];
+            // 'deleted_at' => ${{_model}}->deleted_at,
+        ], $response);
     }
 }

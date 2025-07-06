@@ -2,70 +2,154 @@
 
 namespace Apiato\Generator\Commands;
 
-use Apiato\Generator\Generator;
-use Apiato\Generator\Interfaces\ComponentsGenerator;
+use Apiato\Generator\FileGeneratorCommand;
+use Apiato\Generator\ParentTestCase;
+use Apiato\Generator\Printer;
+use Apiato\Generator\Traits\HasTestTrait;
 use Illuminate\Support\Str;
+use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpFile;
 use Symfony\Component\Console\Input\InputOption;
 
-final class RepositoryGenerator extends Generator implements ComponentsGenerator
+class RepositoryGenerator extends FileGeneratorCommand
 {
-    /**
-     * User required/optional inputs expected to be passed while calling the command.
-     * This is a replacement of the `getArguments` function "which reads whenever it's called".
-     */
-    public array $inputs = [
-        ['model', null, InputOption::VALUE_OPTIONAL, 'The model to generate this Factory for'],
-    ];
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'apiato:make:repository';
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new Repository class';
-    /**
-     * The type of class being generated.
-     */
-    protected string $fileType = 'Repository';
-    /**
-     * The structure of the file path.
-     */
-    protected string $pathStructure = '{section-name}/{container-name}/Data/Repositories/*';
-    /**
-     * The structure of the file name.
-     */
-    protected string $nameStructure = '{file-name}';
-    /**
-     * The name of the stub file.
-     */
-    protected string $stubName = 'repository.stub';
+    use HasTestTrait;
 
-    public function getUserInputs(): array|null
+    protected string $model;
+
+    public static function getCommandName(): string
     {
-        $model = $this->checkParameterOrAsk('model', 'Enter the name of the Model to generate this Repository for');
+        return 'apiato:make:repository';
+    }
 
+    public static function getCommandDescription(): string
+    {
+        return 'Create a Repository file for a Container';
+    }
+
+    public static function getFileType(): string
+    {
+        return 'repository';
+    }
+
+    protected static function getCustomCommandArguments(): array
+    {
         return [
-            'path-parameters' => [
-                'section-name' => $this->sectionName,
-                'container-name' => $this->containerName,
-            ],
-            'stub-parameters' => [
-                '_section-name' => Str::lower($this->sectionName),
-                'section-name' => $this->sectionName,
-                '_container-name' => Str::lower($this->containerName),
-                'container-name' => $this->containerName,
-                'class-name' => $this->fileName,
-                'model' => $model,
-                '_model' => Str::lower($model),
-            ],
-            'file-parameters' => [
-                'file-name' => $this->fileName,
-            ],
+            ['model', null, InputOption::VALUE_OPTIONAL, 'The model this repository is for.'],
         ];
+    }
+
+    public function getDefaultFileName(): string
+    {
+        return ucfirst($this->model) . 'Repository';
+    }
+
+    protected function askCustomInputs(): void
+    {
+        $this->model = $this->checkParameterOrAskTextSuggested(
+            param: 'model',
+            label: 'Enter the name of the Model:',
+            default: $this->containerName,
+            suggestions: $this->getModelsList(
+                section: $this->sectionName,
+                container: $this->containerName,
+                removeModelPostFix: true,
+            ),
+            hint: 'Enter the name of the Model this repository is for.',
+        );
+    }
+
+    protected function getFilePath(): string
+    {
+        return "$this->sectionName/$this->containerName/Data/Repositories/$this->fileName.php";
+    }
+
+    protected function getFileContent(): string
+    {
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Data\Repositories');
+
+        // imports
+        $parentRepositoryFullPath = 'App\Ship\Parents\Repositories\Repository';
+        $namespace->addUse($parentRepositoryFullPath, 'ParentRepository');
+        $modelFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Models\\' . $this->model;
+        $namespace->addUse($modelFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName)
+            ->setExtends($parentRepositoryFullPath);
+
+        // properties
+        $class->addProperty('model')
+            ->setVisibility('protected')
+            ->setValue(new Literal("$this->model::class"));
+        $class->addProperty('fieldSearchable')
+            ->setVisibility('protected')
+            ->setValue([]);
+
+        return $printer->printFile($file);
+    }
+
+    protected function getTestPath(): string
+    {
+        return $this->sectionName . '/' . $this->containerName . '/Tests/Unit/Data/Repositories/' . $this->fileName . 'Test.php';
+    }
+
+    protected function getTestContent(): string
+    {
+        $entity = Str::lower($this->model);
+
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Tests\Unit\Data\Repositories');
+
+        // imports
+        $parentUnitTestCaseFullPath = "App\Containers\AppSection\\$this->containerName\Tests\UnitTestCase";
+        $namespace->addUse($parentUnitTestCaseFullPath);
+        $modelFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Models\\' . $this->model;
+        $namespace->addUse($modelFullPath);
+        $classFullPath = "App\Containers\\$this->sectionName\\$this->containerName\Data\Repositories\\$this->fileName";
+        $namespace->addUse($classFullPath);
+        $coversClassFullPath = 'PHPUnit\Framework\Attributes\CoversClass';
+        $namespace->addUse($coversClassFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName . 'Test')
+            ->addAttribute($coversClassFullPath, [new Literal("$this->fileName::class")])
+            ->setFinal()
+            ->setExtends($parentUnitTestCaseFullPath);
+
+        // test method 1
+        $testMethod1 = $class->addMethod('testRepositoryHasExpectedSearchableFieldsSet')->setPublic();
+        $testMethod1->addBody("
+\$data = [
+];
+\$repository = app($this->fileName::class);
+
+\$this->assertSame(\$data, \$repository->getFieldsSearchable());
+");
+
+        $testMethod1->setReturnType('void');
+
+        // test method 2
+        $testMethod2 = $class->addMethod('testReturnsCorrectModel')->setPublic();
+        $testMethod2->addBody("
+\$repository = app($this->fileName::class);
+
+\$this->assertSame($this->model::class, \$repository->model());
+");
+
+        // return the file
+        return $printer->printFile($file);
+    }
+
+    protected function getParentTestCase(): ParentTestCase
+    {
+        return ParentTestCase::UNIT_TEST_CASE;
     }
 }

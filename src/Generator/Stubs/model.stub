@@ -4,6 +4,10 @@ namespace App\Containers\{{section-name}}\{{container-name}}\Models;
 
 use App\Ship\Parents\Models\Model as ParentModel;
 
-final class {{class-name}} extends ParentModel
+class {{class-name}} extends ParentModel
 {
+    /**
+     * A resource key to be used in the serialized responses.
+     */
+    protected $resourceKey = '{{resource-key}}';
 }

@@ -4,7 +4,11 @@ namespace App\Containers\{{section-name}}\{{container-name}}\Tests\Unit;
 
 use App\Containers\{{section-name}}\{{container-name}}\Tests\UnitTestCase;
 
-final class {{class-name}} extends UnitTestCase
+/**
+ * @group {{_container-name}}
+ * @group unit
+ */
+class {{class-name}} extends UnitTestCase
 {
     public function test(): void
     {

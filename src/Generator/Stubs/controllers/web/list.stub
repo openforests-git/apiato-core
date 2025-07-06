@@ -5,14 +5,12 @@ namespace App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface
 use App\Containers\{{section-name}}\{{container-name}}\Actions\List{{models}}Action;
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Requests\List{{models}}Request;
 use App\Ship\Parents\Controllers\WebController;
-use Illuminate\Http\RedirectResponse;
 
-final class {{class-name}} extends WebController
+class {{class-name}} extends WebController
 {
-    public function __invoke(List{{models}}Request $request, List{{models}}Action $action): RedirectResponse
+    public function index(List{{models}}Request $request)
     {
-        $action->run($request);
-
-        return back();
+        ${{entities}} = app(List{{models}}Action::class)->run($request);
+        // ...
     }
 }

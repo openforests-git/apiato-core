@@ -4,6 +4,7 @@ namespace App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface
 
 use App\Ship\Parents\Controllers\{{base-controller}};
 
-final class {{class-name}} extends {{base-controller}}
+class {{class-name}} extends {{base-controller}}
 {
+
 }

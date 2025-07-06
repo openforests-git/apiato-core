@@ -1,38 +1,76 @@
 <?php
 
-namespace App\Containers\{{section-name}}\{{container-name}}\Tests\Functional\API;
+namespace App\Containers\{{section-name}}\{{container-name}}\UI\API\Tests\Functional;
 
+use App\Containers\{{section-name}}\{{container-name}}\Data\Factories\{{model}}Factory;
 use App\Containers\{{section-name}}\{{container-name}}\Models\{{model}};
-use App\Containers\{{section-name}}\{{container-name}}\Tests\Functional\ApiTestCase;
-use App\Containers\{{section-name}}\{{container-name}}\UI\API\Controllers\Update{{model}}Controller;
-use App\Containers\AppSection\User\Models\User;
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Tests\ApiTestCase;
 use Illuminate\Testing\Fluent\AssertableJson;
-use PHPUnit\Framework\Attributes\CoversNothing;
 
-#[CoversNothing]
-final class {{class-name}} extends ApiTestCase
+/**
+ * @group {{_container-name}}
+ * @group api
+ */
+class {{class-name}} extends ApiTestCase
 {
-    // TODO: test
+    protected string $endpoint = 'patch@v1/{{url}}';
+
+    protected array $access = [
+        'permissions' => '',
+        'roles' => '',
+    ];
+
+    // TODO TEST
     public function testUpdateExisting{{model}}(): void
     {
-        $this->actingAs(User::factory()->createOne());
-        ${{_model}} = {{model}}::factory()->createOne([
+        ${{_model}} = {{model}}Factory::new()->create([
             // 'some_field' => 'new_field_value',
         ]);
         $data = [
             // 'some_field' => 'new_field_value',
         ];
 
-        $response = $this->patchJson(action(Update{{model}}Controller::class, ['id' => ${{_model}}->getHashedKey()]), $data);
+        $response = $this->injectId(${{_model}}->id)->makeCall($data);
 
-        $response->assertOk();
+        $response->assertStatus(200);
         $response->assertJson(
             fn (AssertableJson $json) =>
                 $json->has('data')
-                    ->where('data.type', '{{model}}')
+                    ->where('data.object', '{{model}}')
                     ->where('data.id', ${{_model}}->getHashedKey())
                     // ->where('data.some_field', $data['some_field'])
                     ->etc()
         );
     }
+
+    public function testUpdateNonExisting{{model}}(): void
+    {
+        $invalidId = 7777;
+
+        $response = $this->injectId($invalidId)->makeCall([]);
+
+        $response->assertStatus(404);
+    }
+
+    // TODO TEST
+    // public function testUpdateExisting{{model}}WithEmptyValues(): void
+    // {
+    //     ${{_model}} = {{model}}Factory::new()->createOne();
+    //     $data = [
+    //         // add some fillable fields here
+    //         // 'first_field' => '',
+    //         // 'second_field' => '',
+    //     ];
+    //
+    //     $response = $this->injectId(${{_model}}->id)->makeCall($data);
+    //
+    //     $response->assertStatus(422);
+    //     $response->assertJson(
+    //         fn (AssertableJson $json) =>
+    //         $json->has('errors')
+    //             // ->where('errors.first_field.0', 'assert validation errors')
+    //             // ->where('errors.second_field.0', 'assert validation errors')
+    //             ->etc()
+    //     );
+    // }
 }

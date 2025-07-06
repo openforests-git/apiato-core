@@ -2,7 +2,9 @@
 
 namespace App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Controllers;
 
-use Apiato\Support\Facades\Response;
+use Apiato\Core\Exceptions\CoreInternalErrorException;
+use Apiato\Core\Exceptions\IncorrectIdException;
+use Apiato\Core\Exceptions\InvalidTransformerException;
 use App\Containers\{{section-name}}\{{container-name}}\Actions\Create{{model}}Action;
 use App\Containers\{{section-name}}\{{container-name}}\Actions\Delete{{model}}Action;
 use App\Containers\{{section-name}}\{{container-name}}\Actions\Find{{model}}ByIdAction;
@@ -14,43 +16,81 @@ use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Req
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Requests\List{{models}}Request;
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Requests\Update{{model}}Request;
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Transformers\{{model}}Transformer;
+use App\Ship\Exceptions\CreateResourceFailedException;
+use App\Ship\Exceptions\DeleteResourceFailedException;
+use App\Ship\Exceptions\NotFoundException;
+use App\Ship\Exceptions\UpdateResourceFailedException;
 use App\Ship\Parents\Controllers\{{base-controller}};
 use Illuminate\Http\JsonResponse;
+use Prettus\Repository\Exceptions\RepositoryException;
 
-final class {{class-name}} extends {{base-controller}}
+class {{class-name}} extends {{base-controller}}
 {
-    public function create(Create{{model}}Request $request, Create{{model}}Action $action): JsonResponse
-    {
-       ${{entity}} = $action->run($request);
-
-       return Response::create(${{entity}}, {{model}}Transformer::class)->created();
+    public function __construct(
+        private readonly Create{{model}}Action $create{{model}}Action,
+        private readonly Update{{model}}Action $update{{model}}Action,
+        private readonly Find{{model}}ByIdAction $find{{model}}ByIdAction,
+        private readonly List{{models}}Action $list{{models}}Action,
+        private readonly Delete{{model}}Action $delete{{model}}Action,
+    ) {
     }
 
-    public function findById(Find{{model}}ByIdRequest $request, Find{{model}}ByIdAction $action): JsonResponse
+    /**
+     * @throws InvalidTransformerException
+     * @throws CreateResourceFailedException
+     * @throws IncorrectIdException
+     */
+    public function create{{model}}(Create{{model}}Request $request): JsonResponse
     {
-        ${{entity}} = $action->run($request);
+        ${{entity}} = $this->create{{model}}Action->run($request);
 
-        return Response::create(${{entity}}, {{model}}Transformer::class)->ok();
+        return $this->created($this->transform(${{entity}}, {{model}}Transformer::class));
     }
 
-    public function list(List{{models}}Request $request, List{{models}}Action $action): JsonResponse
+    /**
+     * @throws InvalidTransformerException
+     * @throws NotFoundException
+     */
+    public function find{{model}}ById(Find{{model}}ByIdRequest $request): array
     {
-        ${{entities}} = $action->run($request);
+        ${{entity}} = $this->find{{model}}ByIdAction->run($request);
 
-        return Response::create(${{entities}}, {{model}}Transformer::class)->ok();
+        return $this->transform(${{entity}}, {{model}}Transformer::class);
     }
 
-    public function update(Update{{model}}Request $request, Update{{model}}Action $action): JsonResponse
+    /**
+     * @throws InvalidTransformerException
+     * @throws CoreInternalErrorException
+     * @throws RepositoryException
+     */
+    public function list{{models}}(List{{models}}Request $request): array
     {
-        ${{entity}} = $action->run($request);
+        ${{entities}} = $this->list{{models}}Action->run($request);
 
-        return Response::create(${{entity}}, {{model}}Transformer::class)->ok();
+        return $this->transform(${{entities}}, {{model}}Transformer::class);
     }
 
-    public function delete(Delete{{model}}Request $request, Delete{{model}}Action $action): JsonResponse
+    /**
+     * @throws IncorrectIdException
+     * @throws InvalidTransformerException
+     * @throws NotFoundException
+     * @throws UpdateResourceFailedException
+     */
+    public function update{{model}}(Update{{model}}Request $request): array
     {
-        $action->run($request);
+        ${{entity}} = $this->update{{model}}Action->run($request);
 
-        return Response::noContent();
+        return $this->transform(${{entity}}, {{model}}Transformer::class);
+    }
+
+    /**
+     * @throws DeleteResourceFailedException
+     * @throws NotFoundException
+     */
+    public function delete{{model}}(Delete{{model}}Request $request): JsonResponse
+    {
+        $this->delete{{model}}Action->run($request);
+
+        return $this->noContent();
     }
 }

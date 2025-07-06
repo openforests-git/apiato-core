@@ -4,7 +4,7 @@ namespace App\Containers\{{section-name}}\{{container-name}}\Actions;
 
 use App\Ship\Parents\Actions\Action as ParentAction;
 
-final class {{class-name}} extends ParentAction
+class {{class-name}} extends ParentAction
 {
     public function run()
     {

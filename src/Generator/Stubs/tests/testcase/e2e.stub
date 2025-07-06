@@ -1,7 +1,0 @@
-<?php
-
-namespace App\Containers\{{section-name}}\{{container-name}}\Tests;
-
-class {{class-name}} extends ContainerTestCase
-{
-}

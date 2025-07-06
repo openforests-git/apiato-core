@@ -5,14 +5,12 @@ namespace App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface
 use App\Containers\{{section-name}}\{{container-name}}\Actions\Find{{model}}ByIdAction;
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Requests\Find{{model}}ByIdRequest;
 use App\Ship\Parents\Controllers\WebController;
-use Illuminate\Http\RedirectResponse;
 
-final class {{class-name}} extends WebController
+class {{class-name}} extends WebController
 {
-    public function __invoke(Find{{model}}ByIdRequest $request, Find{{model}}ByIdAction $action): RedirectResponse
+    public function show(Find{{model}}ByIdRequest $request)
     {
-        $action->run($request);
-
-        return back();
+        ${{entity}} = app(Find{{model}}ByIdAction::class)->run($request);
+        // ...
     }
 }

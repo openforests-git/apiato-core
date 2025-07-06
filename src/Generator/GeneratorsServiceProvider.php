@@ -5,34 +5,29 @@ namespace Apiato\Generator;
 use Apiato\Core\Providers\ServiceProvider;
 use Apiato\Generator\Commands\ActionGenerator;
 use Apiato\Generator\Commands\ConfigurationGenerator;
-use Apiato\Generator\Commands\ContainerApiGenerator;
-use Apiato\Generator\Commands\ContainerGenerator;
-use Apiato\Generator\Commands\ContainerWebGenerator;
 use Apiato\Generator\Commands\ControllerGenerator;
+use Apiato\Generator\Commands\CriteriaGenerator;
+use Apiato\Generator\Commands\EndpointGenerator;
 use Apiato\Generator\Commands\EventGenerator;
 use Apiato\Generator\Commands\EventListenerGenerator;
 use Apiato\Generator\Commands\ExceptionGenerator;
-use Apiato\Generator\Commands\FunctionalTestGenerator;
+use Apiato\Generator\Commands\FactoryGenerator;
 use Apiato\Generator\Commands\JobGenerator;
-use Apiato\Generator\Commands\MailGenerator;
-use Apiato\Generator\Commands\MiddlewareGenerator;
 use Apiato\Generator\Commands\MigrationGenerator;
-use Apiato\Generator\Commands\ModelFactoryGenerator;
 use Apiato\Generator\Commands\ModelGenerator;
 use Apiato\Generator\Commands\NotificationGenerator;
 use Apiato\Generator\Commands\PolicyGenerator;
-use Apiato\Generator\Commands\ReadmeGenerator;
 use Apiato\Generator\Commands\RepositoryGenerator;
 use Apiato\Generator\Commands\RequestGenerator;
 use Apiato\Generator\Commands\RouteGenerator;
-use Apiato\Generator\Commands\SeederGenerator;
-use Apiato\Generator\Commands\ServiceProviderGenerator;
-use Apiato\Generator\Commands\SubActionGenerator;
-use Apiato\Generator\Commands\TaskGenerator;
-use Apiato\Generator\Commands\TestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\ApiTestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\CliTestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\ContainerTestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\FunctionalTestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\TestCasesGenerator;
+use Apiato\Generator\Commands\TestCases\UnitTestCaseGenerator;
+use Apiato\Generator\Commands\TestCases\WebTestCaseGenerator;
 use Apiato\Generator\Commands\TransformerGenerator;
-use Apiato\Generator\Commands\UnitTestGenerator;
-use Apiato\Generator\Commands\ValueGenerator;
 
 class GeneratorsServiceProvider extends ServiceProvider
 {
@@ -47,35 +42,30 @@ class GeneratorsServiceProvider extends ServiceProvider
     {
         return [
             ActionGenerator::class,
+            ApiTestCaseGenerator::class,
+            CliTestCaseGenerator::class,
             ConfigurationGenerator::class,
-            ContainerGenerator::class,
-            ContainerApiGenerator::class,
-            ContainerWebGenerator::class,
+            ContainerTestCaseGenerator::class,
             ControllerGenerator::class,
+            CriteriaGenerator::class,
+            EndpointGenerator::class,
             EventGenerator::class,
             EventListenerGenerator::class,
             ExceptionGenerator::class,
+            FunctionalTestCaseGenerator::class,
+            FactoryGenerator::class,
             JobGenerator::class,
-            ModelFactoryGenerator::class,
-            MailGenerator::class,
-            MiddlewareGenerator::class,
             MigrationGenerator::class,
             ModelGenerator::class,
             NotificationGenerator::class,
             PolicyGenerator::class,
-            ReadmeGenerator::class,
             RepositoryGenerator::class,
             RequestGenerator::class,
             RouteGenerator::class,
-            SeederGenerator::class,
-            ServiceProviderGenerator::class,
-            SubActionGenerator::class,
-            FunctionalTestGenerator::class,
-            TestCaseGenerator::class,
-            UnitTestGenerator::class,
-            TaskGenerator::class,
+            TestCasesGenerator::class,
             TransformerGenerator::class,
-            ValueGenerator::class,
+            UnitTestCaseGenerator::class,
+            WebTestCaseGenerator::class,
         ];
     }
 }

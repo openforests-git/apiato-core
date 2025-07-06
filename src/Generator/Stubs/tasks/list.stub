@@ -2,16 +2,22 @@
 
 namespace App\Containers\{{section-name}}\{{container-name}}\Tasks;
 
+use Apiato\Core\Exceptions\CoreInternalErrorException;
 use App\Containers\{{section-name}}\{{container-name}}\Data\Repositories\{{model}}Repository;
 use App\Ship\Parents\Tasks\Task as ParentTask;
+use Prettus\Repository\Exceptions\RepositoryException;
 
-final class {{class-name}} extends ParentTask
+class {{class-name}} extends ParentTask
 {
     public function __construct(
-        private readonly {{model}}Repository $repository,
+        protected readonly {{model}}Repository $repository,
     ) {
     }
 
+    /**
+     * @throws CoreInternalErrorException
+     * @throws RepositoryException
+     */
     public function run(): mixed
     {
         return $this->repository->addRequestCriteria()->paginate();

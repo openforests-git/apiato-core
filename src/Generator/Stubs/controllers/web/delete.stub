@@ -5,14 +5,12 @@ namespace App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface
 use App\Containers\{{section-name}}\{{container-name}}\Actions\Delete{{model}}Action;
 use App\Containers\{{section-name}}\{{container-name}}\UI\{{user-interface}}\Requests\Delete{{model}}Request;
 use App\Ship\Parents\Controllers\WebController;
-use Illuminate\Http\RedirectResponse;
 
-final class {{class-name}} extends WebController
+class {{class-name}} extends WebController
 {
-    public function __invoke(Delete{{model}}Request $request, Delete{{model}}Action $action): RedirectResponse
+    public function destroy(Delete{{model}}Request $request)
     {
-        $action->run($request);
-
-        return back();
+        $result = app(Delete{{model}}Action::class)->run($request);
+        // ...
     }
 }

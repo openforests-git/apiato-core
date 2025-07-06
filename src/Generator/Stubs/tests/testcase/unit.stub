@@ -2,6 +2,8 @@
 
 namespace App\Containers\{{section-name}}\{{container-name}}\Tests;
 
-class {{class-name}} extends ContainerTestCase
+use App\Ship\Parents\Tests\PhpUnit\TestCase as ParentTestCase;
+
+class {{class-name}} extends ParentTestCase
 {
 }

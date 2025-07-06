@@ -2,105 +2,196 @@
 
 namespace Apiato\Generator\Commands;
 
-use Apiato\Generator\Generator;
-use Apiato\Generator\Interfaces\ComponentsGenerator;
+use Apiato\Generator\FileGeneratorCommand;
+use Apiato\Generator\ParentTestCase;
+use Apiato\Generator\Printer;
+use Apiato\Generator\Traits\HasTestTrait;
 use Illuminate\Support\Pluralizer;
 use Illuminate\Support\Str;
+use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpFile;
 use Symfony\Component\Console\Input\InputOption;
 
-final class ControllerGenerator extends Generator implements ComponentsGenerator
+class ControllerGenerator extends FileGeneratorCommand
 {
-    /**
-     * The options which can be passed to the command. All options are optional. You do not need to pass the
-     * "--container" and "--file" options, as they are globally handled. Just use the options which are specific to
-     * this generator.
-     */
-    public array $inputs = [
-        ['ui', null, InputOption::VALUE_OPTIONAL, 'The user-interface to generate the Controller for.'],
-        ['stub', null, InputOption::VALUE_OPTIONAL, 'The stub file to load for this generator.'],
-        ['model', null, InputOption::VALUE_OPTIONAL, 'The model you want to use for this controller.'],
-    ];
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'apiato:make:controller';
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a controller for a container';
-    /**
-     * The type of class being generated.
-     */
-    protected string $fileType = 'Controller';
-    /**
-     * The structure of the file path.
-     */
-    protected string $pathStructure = '{section-name}/{container-name}/UI/{user-interface}/Controllers/*';
-    /**
-     * The structure of the file name.
-     */
-    protected string $nameStructure = '{file-name}';
-    /**
-     * The name of the stub file.
-     */
-    protected string $stubName = 'controllers/generic.stub';
+    use HasTestTrait;
 
-    public function getUserInputs(): array|null
+    protected string $stub;
+
+    public static function getCommandName(): string
     {
-        $model = $this->checkParameterOrAsk('model', 'Enter the name of the Model that this controller uses', $this->containerName);
-        $models = Pluralizer::plural($model);
+        return 'apiato:make:controller';
+    }
 
-        $ui = Str::lower($this->checkParameterOrChoice('ui', 'Select the UI for the controller', ['API', 'WEB'], 0));
+    public static function getCommandDescription(): string
+    {
+        return 'Create a Controller file for a Container';
+    }
 
-        $stub = Str::lower(
-            $this->checkParameterOrChoice(
-                'stub',
-                'Select the Stub you want to load',
-                ['Generic', 'CRUD', 'Create', 'Delete', 'Find', 'List', 'Update'],
-                0,
-            ),
-        );
+    public static function getFileType(): string
+    {
+        return 'controller';
+    }
 
-        // Load a new stub-file based on the users choice
-        $this->stubName = 'controllers/' . $ui . '/' . $stub . '.stub';
-
-        $basecontroller = Str::ucfirst($ui) . 'Controller';
-
-        $entity = Str::camel($model);
-        $entities = Str::of($entity)->pluralStudly()->camel()->toString();
-
+    protected static function getCustomCommandArguments(): array
+    {
         return [
-            'path-parameters' => [
-                'section-name' => $this->sectionName,
-                'container-name' => $this->containerName,
-                'user-interface' => Str::upper($ui),
-            ],
-            'stub-parameters' => [
-                '_section-name' => Str::lower($this->sectionName),
-                'section-name' => $this->sectionName,
-                '_container-name' => Str::lower($this->containerName),
-                'container-name' => $this->containerName,
-                'class-name' => $this->fileName,
-                'user-interface' => Str::upper($ui),
-                'base-controller' => $basecontroller,
-
-                'model' => $model,
-                'models' => $models,
-                'entity' => $entity,
-                'entities' => $entities,
-            ],
-            'file-parameters' => [
-                'file-name' => $this->fileName,
-            ],
+            ['stub', null, InputOption::VALUE_OPTIONAL, 'The stub file to load for this generator.'],
         ];
     }
 
     public function getDefaultFileName(): string
     {
-        return 'Controller';
+        return ucfirst($this->stub) . ('list' === $this->stub ? ucfirst(Pluralizer::plural($this->containerName)) : ucfirst($this->containerName)) . 'Controller';
+    }
+
+    protected function askCustomInputs(): void
+    {
+        $this->stub = $this->checkParameterOrSelect(
+            param: 'stub',
+            label: 'Select the controller type:',
+            options: [
+                // add generic
+                'list' => 'List',
+                'find' => 'Find',
+                'create' => 'Create',
+                'update' => 'Update',
+                'delete' => 'Delete',
+            ],
+            default: 'find',
+            hint: 'Different types of controllers have different default behaviors.',
+        );
+    }
+
+    protected function getFilePath(): string
+    {
+        return "$this->sectionName/$this->containerName/UI/API/Controllers/$this->fileName.php";
+    }
+
+    protected function getFileContent(): string
+    {
+        // Name of the model (singular and plural)
+        $model = $this->containerName;
+        $models = Pluralizer::plural($model);
+        $entity = Str::lower($model);
+        $entities = Pluralizer::plural($entity);
+        $requestName = substr($this->fileName, 0, -10) . 'Request';
+        $actionName = substr($this->fileName, 0, -10) . 'Action';
+
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\UI\API\Controllers');
+
+        // imports
+        $jsonResponseFullPath = 'Illuminate\Http\JsonResponse';
+        $namespace->addUse($jsonResponseFullPath);
+        $parentActionFullPath = 'App\Ship\Parents\Controllers\ApiController';
+        $namespace->addUse($parentActionFullPath);
+        $requestFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\UI\\API\\Requests\\' . $requestName;
+        $namespace->addUse($requestFullPath);
+        $actionFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Actions\\' . $actionName;
+        $namespace->addUse($actionFullPath);
+        $transformerFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\UI\\API\\Transformers\\' . $model . 'Transformer';
+        $namespace->addUse($transformerFullPath);
+        $invalidTransformerExceptionFullPath = 'Apiato\Core\Exceptions\InvalidTransformerException';
+        $namespace->addUse($invalidTransformerExceptionFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName)
+            ->setExtends($parentActionFullPath);
+
+        // invoke method
+        $invoke = $class->addMethod('__invoke');
+        $invoke->addComment('@throws InvalidTransformerException');
+        $invoke->addParameter('request')->setType($requestFullPath);
+        $invoke->addParameter('action')->setType($actionFullPath);
+        $invoke->setReturnType($jsonResponseFullPath);
+        switch ($this->stub) {
+            case 'list':
+                $invoke->addBody("$$entities = \$action->run(\$request);");
+                $invoke->addBody(sprintf('return $this->transform($%s, %sTransformer::class);', $entities, $model));
+                break;
+            case 'create':
+                $invoke->addBody("$$entity = \$action->transactionalRun(\$request);");
+                $invoke->addBody(sprintf('return $this->created($this->transform($%s, %sTransformer::class));', $entity, $model));
+                break;
+            case 'update':
+                $invoke->addBody("$$entity = \$action->transactionalRun(\$request);");
+                $invoke->addBody(sprintf('return $this->transform($%s, %sTransformer::class);', $entity, $model));
+                break;
+            case 'find':
+                $invoke->addBody("$$entity = \$action->run(\$request);");
+                $invoke->addBody(sprintf('return $this->transform($%s, %sTransformer::class);', $entity, $model));
+                break;
+            case 'delete':
+                $invoke->removeComment();
+                $invoke->addBody('$action->transactionalRun($request);');
+                $invoke->addBody('return $this->deleted();');
+                break;
+        }
+
+        return $printer->printFile($file);
+    }
+
+    protected function getTestPath(): string
+    {
+        return $this->sectionName . '/' . $this->containerName . '/Tests/Unit/UI/API/Controllers/' . $this->fileName . 'Test.php';
+    }
+
+    protected function getTestContent(): string
+    {
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $requestName = substr($this->fileName, 0, -10) . 'Request';
+        $actionName = substr($this->fileName, 0, -10) . 'Action';
+        $runMethod = (in_array($this->stub, ['create', 'update', 'delete'])) ? 'transactionalRun' : 'run';
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Tests\Unit\UI\API\Controllers');
+
+        // imports
+        $parentUnitTestCaseFullPath = "App\Containers\AppSection\\$this->containerName\Tests\UnitTestCase";
+        $namespace->addUse($parentUnitTestCaseFullPath);
+        $requestFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\UI\\API\\Requests\\' . $requestName;
+        $namespace->addUse($requestFullPath);
+        $actionFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Actions\\' . $actionName;
+        $namespace->addUse($actionFullPath);
+        $classFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\UI\API\Controllers\\' . $this->fileName;
+        $namespace->addUse($classFullPath);
+        $coversClassFullPath = 'PHPUnit\Framework\Attributes\CoversClass';
+        $namespace->addUse($coversClassFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName . 'Test')
+            ->addAttribute($coversClassFullPath, [new Literal("$this->fileName::class")])
+            ->setFinal()
+            ->setExtends($parentUnitTestCaseFullPath);
+
+        // test method
+        $testMethod = $class->addMethod('testControllerCallsCorrectAction')->setPublic();
+        $testMethod->addBody("
+\$request = $requestName::injectData();
+\$actionSpy = \$this->spy($actionName::class, function (\$mock) {
+    \$mock->shouldReceive('run');
+});
+\$controller = app($this->fileName::class);
+
+\$controller->__invoke(\$request, \$actionSpy);
+
+\$actionSpy->shouldHaveReceived('$runMethod')->once()->with(\$request);
+");
+
+        $testMethod->setReturnType('void');
+
+        // return the file
+        return $printer->printFile($file);
+    }
+
+    protected function getParentTestCase(): ParentTestCase
+    {
+        return ParentTestCase::UNIT_TEST_CASE;
     }
 }

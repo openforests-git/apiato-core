@@ -2,88 +2,133 @@
 
 namespace Apiato\Generator\Commands;
 
-use Apiato\Generator\Generator;
-use Apiato\Generator\Interfaces\ComponentsGenerator;
-use Illuminate\Support\Str;
-use Symfony\Component\Console\Input\InputOption;
+use Apiato\Generator\FileGeneratorCommand;
+use Apiato\Generator\ParentTestCase;
+use Apiato\Generator\Printer;
+use Apiato\Generator\Traits\HasTestTrait;
+use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpFile;
 
-final class EventGenerator extends Generator implements ComponentsGenerator
+class EventGenerator extends FileGeneratorCommand
 {
-    /**
-     * User required/optional inputs expected to be passed while calling the command.
-     * This is a replacement of the `getArguments` function "which reads whenever it's called".
-     */
-    public array $inputs = [
-        ['model', null, InputOption::VALUE_OPTIONAL, 'The model to generate this Event for'],
-        ['stub', null, InputOption::VALUE_OPTIONAL, 'The stub file to load for this generator.'],
-        ['listener', null, InputOption::VALUE_OPTIONAL, 'Generate a Listener for this Event?'],
-    ];
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'apiato:make:event';
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new Event class and its corresponding Listener';
-    /**
-     * The type of class being generated.
-     */
-    protected string $fileType = 'Event';
-    /**
-     * The structure of the file path.
-     */
-    protected string $pathStructure = '{section-name}/{container-name}/Events/*';
-    /**
-     * The structure of the file name.
-     */
-    protected string $nameStructure = '{file-name}';
-    /**
-     * The name of the stub file.
-     */
-    protected string $stubName = 'events/generic.stub';
+    use HasTestTrait;
 
-    public function getUserInputs(): array|null
+    public static function getCommandName(): string
     {
-        $model = $this->checkParameterOrAsk('model', 'Enter the name of the Model to generate this Event for', Str::ucfirst($this->containerName));
-        $listener = $this->option('listener');
-        if (is_null($listener)) {
-            $listener = $this->checkParameterOrConfirm('listener', 'Do you want to generate a Listener for this Event?', false);
-            if ($listener) {
-                $this->call('apiato:make:listener', [
-                    '--section' => $this->sectionName,
-                    '--container' => $this->containerName,
-                    '--file' => $this->fileName . 'Listener',
-                    '--event' => $this->fileName,
-                ]);
-            }
-        }
+        return 'apiato:make:event';
+    }
 
-        $stub = Str::lower($this->option('stub')) ?: 'generic';
+    public static function getCommandDescription(): string
+    {
+        return 'Create an Event file for a Container';
+    }
 
-        $this->stubName = 'events/' . $stub . '.stub';
+    public static function getFileType(): string
+    {
+        return 'event';
+    }
 
+    protected static function getCustomCommandArguments(): array
+    {
         return [
-            'path-parameters' => [
-                'section-name' => $this->sectionName,
-                'container-name' => $this->containerName,
-            ],
-            'stub-parameters' => [
-                '_section-name' => Str::lower($this->sectionName),
-                'section-name' => $this->sectionName,
-                '_container-name' => Str::lower($this->containerName),
-                'container-name' => $this->containerName,
-                'class-name' => $this->fileName,
-                'model' => $model,
-                '_model' => Str::lower($model),
-            ],
-            'file-parameters' => [
-                'file-name' => $this->fileName,
-            ],
         ];
+    }
+
+    protected function askCustomInputs(): void
+    {
+    }
+
+    protected function getFilePath(): string
+    {
+        return "$this->sectionName/$this->containerName/Events/$this->fileName.php";
+    }
+
+    protected function getFileContent(): string
+    {
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Events');
+
+        // imports
+        $parentEventFullPath = 'App\Ship\Events\StorableEvent';
+        $namespace->addUse($parentEventFullPath);
+        $storeInDatabaseEventFullPath = 'App\Containers\AppSection\Statistic\Contracts\Events\StoreInDatabaseEvent';
+        $namespace->addUse($storeInDatabaseEventFullPath);
+        $modelFullPath = 'Illuminate\Database\Eloquent\Model';
+        $namespace->addUse($modelFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName)
+            ->setExtends($parentEventFullPath)
+            ->addImplement($storeInDatabaseEventFullPath);
+
+        // constructor method
+        $class->addMethod('__construct')
+            ->setPublic()
+            ->setBody('parent::__construct($model);')
+            ->addPromotedParameter('model')
+            ->setType($modelFullPath)
+            ->setPublic()
+            ->setReadOnly();
+
+        return $printer->printFile($file);
+    }
+
+    protected function getTestPath(): string
+    {
+        return "$this->sectionName/$this->containerName/Tests/Unit/Events/$this->fileName" . 'Test.php';
+    }
+
+    protected function getTestContent(): string
+    {
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Tests\Unit\Events');
+
+        // imports
+        $parentUnitTestCaseFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Tests\UnitTestCase';
+        $namespace->addUse($parentUnitTestCaseFullPath);
+        $coversClassFullPath = 'PHPUnit\Framework\Attributes\CoversClass';
+        $namespace->addUse($coversClassFullPath);
+        $eventFullPath = 'App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Events\\' . $this->fileName;
+        $namespace->addUse($eventFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName . 'Test')
+            ->addAttribute($coversClassFullPath, [new Literal("$this->fileName::class")])
+            ->setFinal()
+            ->setExtends($parentUnitTestCaseFullPath);
+
+        // test 1
+        $class->addMethod('testEventExtendsExpectedModel')
+            ->setPublic()
+            ->setBody(
+                "
+\$this->assertSubclassOf(StorableEvent::class, $this->fileName::class);
+\$this->assertSubclassOf(StoreInDatabaseEvent::class, $this->fileName::class);
+",
+            );
+        // test 2
+        $class->addMethod('testShouldSetProperty')
+            ->setPublic()
+            ->setBody(
+                "
+// \$model = ModelFactory::new()->make();
+// \$event = new $this->fileName(\$model);
+
+// \$this->assertSame(\$model, \$event->model);
+",
+            );
+
+        return $printer->printFile($file);
+    }
+
+    protected function getParentTestCase(): ParentTestCase
+    {
+        return ParentTestCase::UNIT_TEST_CASE;
     }
 }

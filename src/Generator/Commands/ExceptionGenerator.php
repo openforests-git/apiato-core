@@ -2,64 +2,70 @@
 
 namespace Apiato\Generator\Commands;
 
-use Apiato\Generator\Generator;
-use Apiato\Generator\Interfaces\ComponentsGenerator;
-use Illuminate\Support\Str;
+use Apiato\Generator\FileGeneratorCommand;
+use Apiato\Generator\Printer;
+use Nette\PhpGenerator\PhpFile;
+use Symfony\Component\HttpFoundation\Response;
 
-final class ExceptionGenerator extends Generator implements ComponentsGenerator
+class ExceptionGenerator extends FileGeneratorCommand
 {
-    /**
-     * User required/optional inputs expected to be passed while calling the command.
-     * This is a replacement of the `getArguments` function "which reads whenever it's called".
-     */
-    public array $inputs = [
-    ];
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'apiato:make:exception';
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new Exception class';
-    /**
-     * The type of class being generated.
-     */
-    protected string $fileType = 'Exception';
-    /**
-     * The structure of the file path.
-     */
-    protected string $pathStructure = '{section-name}/{container-name}/Exceptions/*';
-    /**
-     * The structure of the file name.
-     */
-    protected string $nameStructure = '{file-name}';
-    /**
-     * The name of the stub file.
-     */
-    protected string $stubName = 'exception.stub';
+    public static function getCommandName(): string
+    {
+        return 'apiato:make:exception';
+    }
 
-    public function getUserInputs(): array|null
+    public static function getCommandDescription(): string
+    {
+        return 'Create an Exception for a Container';
+    }
+
+    public static function getFileType(): string
+    {
+        return 'exception';
+    }
+
+    protected static function getCustomCommandArguments(): array
     {
         return [
-            'path-parameters' => [
-                'section-name' => $this->sectionName,
-                'container-name' => $this->containerName,
-            ],
-            'stub-parameters' => [
-                '_section-name' => Str::lower($this->sectionName),
-                'section-name' => $this->sectionName,
-                '_container-name' => Str::lower($this->containerName),
-                'container-name' => $this->containerName,
-                'class-name' => $this->fileName,
-            ],
-            'file-parameters' => [
-                'file-name' => $this->fileName,
-            ],
         ];
+    }
+
+    protected function askCustomInputs(): void
+    {
+    }
+
+    protected function getFilePath(): string
+    {
+        return "$this->sectionName/$this->containerName/Exceptions/$this->fileName.php";
+    }
+
+    protected function getFileContent(): string
+    {
+        $file = new PhpFile();
+        $printer = new Printer();
+
+        $namespace = $file->addNamespace('App\Containers\\' . $this->sectionName . '\\' . $this->containerName . '\Exceptions');
+
+        // imports
+        $parentExceptionFullPath = 'App\Ship\Parents\Exceptions\Exception';
+        $namespace->addUse($parentExceptionFullPath, 'ParentException');
+        $responseFullPath = 'Symfony\Component\HttpFoundation\Response';
+        $namespace->addUse($responseFullPath);
+
+        // class
+        $class = $file->addNamespace($namespace)
+            ->addClass($this->fileName)
+            ->setExtends($parentExceptionFullPath);
+
+        // properties
+        $class->addProperty('code')
+            ->setVisibility('protected')
+            ->setValue(Response::HTTP_BAD_REQUEST); //  TODO: find a way to initialize it with `Response::HTTP_BAD_REQUEST` not 400
+
+        $class->addProperty('message')
+            ->setVisibility('protected')
+            ->setValue('Exception Default Message.');
+
+        return $printer->printFile($file);
     }
 }
