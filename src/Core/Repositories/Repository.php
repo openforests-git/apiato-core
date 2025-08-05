@@ -445,7 +445,7 @@ abstract class Repository extends BaseRepository implements CacheableInterface
      *
      * @throws ResourceNotFound
      */
-    public function findOrFail(int|string $id, array $columns = ['*'])
+    public function findOrFail(int|string|null $id, array $columns = ['*'])
     {
         return $this->find($id, $columns) ?? throw ResourceNotFound::create(class_basename($this->model()));
     }
